@@ -1,17 +1,20 @@
 from datetime import datetime, timezone, timedelta
 from Calendars import Calendars
 from Weather import Weather
+from CDB import DBCCollection
 from Ollama import Ollama
 
 class DailyBrief :
     calendars : Calendars = None
     weather : Weather = None
     ollama : Ollama = None
+    chroma : DBCCollection = None
     response : str = None
 
     def __init__(self):
         self.calendars = Calendars()
         self.weather = Weather()
+        self.chroma = DBCCollection("article")
         self.ollama = Ollama()
 
     def set_calendar_event(self) :
@@ -21,15 +24,20 @@ class DailyBrief :
     def set_weather_report(self) :
         self.weather.get_weather_report()
 
+    def set_Articles_Informations(self):
+        self.chroma.set_article_informations()
+
     def get_information_JSON(self) : 
         return {
             'calendars' : self.calendars.Get_Events_JSON(),
-            'weather' : self.weather.Get_Weather_JSON()
+            'weather' : self.weather.Get_Weather_JSON(),
+            'articles' : self.chroma.Get_Article_JSON()
         }
     
     def get_daily_brief_LLM(self) :
         self.set_calendar_event()
         self.set_weather_report()
+        self.set_Articles_Informations()
         self.response = self.ollama.query(self.get_information_JSON())
 
 
