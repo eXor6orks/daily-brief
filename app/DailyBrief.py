@@ -1,8 +1,8 @@
 from datetime import datetime, timezone, timedelta
-from Calendars import Calendars
-from Weather import Weather
-from CDB import DBCCollection
-from Ollama import Ollama
+from Daily.Calendars import Calendars
+from Daily.Weather import Weather
+from Daily.CDB import DBCCollection
+from Daily.Ollama import Ollama
 
 class DailyBrief :
     calendars : Calendars = None
