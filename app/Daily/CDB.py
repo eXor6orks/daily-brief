@@ -1,24 +1,39 @@
 import chromadb
 from datetime import datetime, timedelta, timezone
-import time
 from dotenv import load_dotenv
+load_dotenv()
+
 import os
 from collections import defaultdict
-from Ollama import Ollama
 
-load_dotenv()
-print(os.getenv("CHROMA_HOST"), os.getenv("CHROMA_PORT"))
+CHROMA_HOST = os.getenv("CHROMA_HOST")
+CHROMA_PORT = os.getenv("CHROMA_PORT")
+
+"""
+    Class for connect to vector database (Chroma). 
+"""
 class DBC :
-    chroma_client = chromadb.HttpClient(host=os.getenv("CHROMA_HOST"), port=int(os.getenv("CHROMA_PORT")))
+    chroma_client = chromadb.HttpClient(host=CHROMA_HOST, port=int(CHROMA_PORT))
     
     def get_collection(self, collection_name : str) -> chromadb.Collection :
         print(self.chroma_client.list_collections())
         return self.chroma_client.get_or_create_collection(collection_name)
 
+"""
+    This class is an exemple of class for manage a collection in database.
+
+    For exemple, this class manage Artciles Collection in my database.
+    My collection stock few articles automatically. With distance research,
+    wa can have the most near artciles from the question.
+
+    It's possible to update it if you have a different collection. 
+"""
 class DBCCollection(DBC):
     def __init__(self, collection_name : str):
         super().__init__()
         self.collection : chromadb.Collection = self.get_collection(collection_name)
+
+        self.news : str = ""
 
     def query_collection(self, question: str, n_results: int = 3) -> chromadb.QueryResult :
         # Calcul des bornes en UTC
@@ -27,9 +42,7 @@ class DBCCollection(DBC):
 
         # Conversion en timestamp float
         start_ts = seven_days_ago_utc.timestamp()
-        end_ts = now_utc.timestamp()
 
-        print(start_ts, end_ts)
         # Query Chroma avec bornes $gt et $lt
         return self.collection.query(
             query_texts=[question],
@@ -41,30 +54,9 @@ class DBCCollection(DBC):
                 ]
             }
         )
-
-    def merge_article_chunks(self, results):
-        merged = defaultdict(lambda: {"topic": None, "timestamp": None, "texts": []})
-        for doc, meta, dist in zip(results["documents"][0], results["metadatas"][0], results["distances"][0]):
-            src = meta["source"]
-            merged[src]["topic"] = meta.get("topic")
-            merged[src]["timestamp"] = meta.get("timestamp")
-            merged[src]["texts"].append(doc)
-
-        articles = []
-        for src, data in merged.items():
-            articles.append({
-                "source": src,
-                "topic": data["topic"],
-                "timestamp": data["timestamp"],
-                "text": " ".join(data["texts"]),  # fusionne et limite
-            })
-        return articles
     
-    def set_article_informations(self) :
-        self.news = ""
-
-        res = self.query_collection("technology and artificial inteligence in the world", n_results=10)
-        art = self.merge_article_chunks(res)
+    def set_article_informations(self, question : str) :
+        res = self.query_collection(question, n_results=10)
         
         for doc, meta, dist in zip(res["documents"][0], res["metadatas"][0], res["distances"][0]):
             self.news = self.news + f"source: {meta["source"]} \n"

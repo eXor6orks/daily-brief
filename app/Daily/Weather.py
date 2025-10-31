@@ -4,6 +4,12 @@ import pandas as pd
 import requests_cache
 from retry_requests import retry
 
+URL_WEATHER = "https://api.open-meteo.com/v1/forecast"
+
+"""
+    Class Location.
+    Longitude and latitude position from ipapi. 
+"""
 class Location :
     def __init__(self, latitude, longitude) :
         self.latitude = latitude
@@ -33,6 +39,11 @@ class Position :
             'Location' : self.location._get_JSON()
         }
 
+"""
+    This class can manage the weather on you'r IP location.
+    Her role is to return weather information for daily-brief to
+    pass them on Ollama model.
+"""
 class Weather :
 
     df_weather_prediction = None
@@ -45,12 +56,15 @@ class Weather :
         retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
         openmeteo = openmeteo_requests.Client(session = retry_session)
 
-        url = "https://api.open-meteo.com/v1/forecast"
+        url = URL_WEATHER
         params = {
             "latitude": self.position.location.latitude,
             "longitude": self.position.location.longitude,
             "timezone": "auto",
-            "hourly": ["temperature_2m", "relative_humidity_2m"],
+            "hourly": [
+                "temperature_2m", 
+                "relative_humidity_2m"
+            ],
         }
         responses = openmeteo.weather_api(url, params=params)
 

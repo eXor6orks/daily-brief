@@ -1,9 +1,10 @@
 import requests
 import json
-from datetime import datetime
+import datetime
 
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
 MODEL = "llama3.1:8b"
+MODEL_RESUME = "gemma3:1b"
 
 def serialize_data(data):
     def convert(obj):
@@ -17,26 +18,26 @@ def serialize_data(data):
 
 class Ollama:
     def __init__(self, warm: bool = True, warm_prompt: str = "Warm model"):
-        # Utilise une session persistante pour réutiliser la connexion HTTP et éviter certains surcoûts
+
         self.session = requests.Session()
         self.session.headers.update({"Content-Type": "application/json"})
         self.model = MODEL
 
-        # Optionnel : lancer un warm-up simple pour forcer le chargement du modèle une seule fois
+        # Optionnal : run warm-up to force the loading of model once
         if warm:
             try:
-                # demande courte et silencieuse pour précharger le modèle sur le serveur Ollama
+                # little ask for Ollama model
                 self._warm_model(warm_prompt)
             except Exception as e:
-                # ne bloque pas l'exécution si le warm-up échoue ; affiche juste le warning
+                # Don't stop the process, just print the warnings
                 print(f"[Ollama] Warm-up failed: {e}")
 
     def _warm_model(self, prompt: str):
         payload = {"model": self.model, "prompt": prompt, "stream": False}
-        # timeout plus long pour donner le temps au serveur de charger le modèle GPU si nécessaire
+        # timeout more longer for stay time to server to load model on GPU
         resp = self.session.post(OLLAMA_API_URL, json=payload, timeout=120)
         resp.raise_for_status()
-        # on ignore la réponse détaillée; l'objectif est juste de charger le modèle côté serveur
+        # The response is useless
         return
     
     def _post(self, payload: dict) -> str:
@@ -44,58 +45,76 @@ class Ollama:
         resp.raise_for_status()
         return resp.json().get("response", "")
 
+    """
+    This function return the main Text generation from LLM model and print it
+    on the terminal.
+    """
     def query(self, data):
         data_serialized = serialize_data(data)
 
         prompt = f"""
-        Tu es un assistant personnel qui rédige un résumé quotidien clair et utile pour un ingénieur informatique.
+        You are a personal assistant that writes a clear and useful daily summary for a software engineer.
 
-        Voici mes données du jour :
-        - Calendrier : {json.dumps(data_serialized.get('calendars', {}), ensure_ascii=False, indent=2)}
-        - Météo : {json.dumps(data_serialized.get('weather', {}), ensure_ascii=False, indent=2)}
-        - Résumé d'article parue récémment : {json.dumps(data_serialized.get('articles', {}), ensure_ascii=False, indent=2)}
+        date of today : {datetime.datetime.now()}
 
-        Fais un résumé concis sous forme de texte, agréable à lire pour le matin à partir des informations précédentes. 
-        N'hésite pas à détailler des informations à propos des articles.
+        Here are today's data:
+        - Calendar: {json.dumps(data_serialized.get('calendars', {}), ensure_ascii=False, indent=2)}
+        - Weather: {json.dumps(data_serialized.get('weather', {}), ensure_ascii=False, indent=2)}
+        - Recent articles summary: {json.dumps(data_serialized.get('articles', {}), ensure_ascii=False, indent=2)}
+
+        Create a short, readable morning briefing from this information.
+        Focus on key insights and briefly expand on interesting tech or AI news.
         """
 
         payload = {
             "model": MODEL,
             "prompt": prompt,
-            "stream": False
+            "stream": True
         }
 
-        response = requests.post(OLLAMA_API_URL, json=payload)
-        response.raise_for_status()
-        return response.json().get("response", "")
+        with self.session.post(OLLAMA_API_URL, json=payload, stream=True, timeout=120) as resp:
+            resp.raise_for_status()
+            print("\n--- Daily Brief ---\n")
+            full_text = ""
+            for line in resp.iter_lines():
+                if line:
+                    chunk = json.loads(line)
+                    text_piece = chunk.get("response", "")
+                    print(text_piece, end="", flush=True)
+                    full_text += text_piece
+            print("\n\n--- End of Brief ---\n")
+        return full_text
     
+    """
+    Is a simplify summarizer for resume the main informations between few articles.
+    """
     def resume_article(self, data):
         prompt = f"""
-        Voici plusieurs articles récents sur la technologie et l'intelligence artificielle :
+        Here are several recent articles about technology and artificial intelligence:
         {data}
         
-        Tu es un ingénieur expert en IA et en systèmes informatiques.
+        You are an expert software engineer specializing in AI and systems design.
 
-        Ta mission :
-        - Identifier UNIQUEMENT les 2 à 3 articles qui apportent de vraies informations nouvelles et pertinentes.
-        - Ces informations peuvent concerner :
-        • Un nouveau modèle d'IA ou une technologie innovante
-        • Une avancée scientifique ou technique concrète
-        • Un nouveau produit, framework ou outil
-        • Une stratégie ou décision d'entreprise ayant un impact notable sur le domaine technologique
+        Your task:
+        - Identify ONLY 2 to 3 articles that bring genuinely new and relevant information.
+        - Such information can include:
+          • A new AI model or innovative technology
+          • A concrete scientific or technical advancement
+          • A new product, framework, or tool
+          • A strategic or business decision with major impact on the tech field
 
-        Pour chaque article retenu :
-        - Résume les points clés en 2 à 4 phrases claires et précises.
-        - Mets en avant les aspects techniques ou stratégiques (modèles, frameworks, entreprises, enjeux).
+        For each selected article:
+        - Summarize the key insights in 2 to 4 clear, precise sentences.
+        - Highlight the technical or strategic aspects (models, frameworks, companies, implications).
 
-        Si aucun article n'apporte d'information réellement utile ou nouvelle, indique-le explicitement :
-        "Aucune nouveauté technologique ou information pertinente trouvée dans les articles récents."
+        If none of the articles provide any meaningful or novel information, say so explicitly:
+        "No significant or noteworthy technological updates found in the recent articles."
 
-        Garde un ton professionnel, clair et synthétique — comme un ingénieur qui prépare un daily brief pour son équipe.            
+        Keep the tone professional, concise, and informative — like an engineer writing a morning brief for their team.
         """
 
         payload = {
-            "model": "gemma3:1b",
+            "model": MODEL_RESUME,
             "prompt": prompt,
             "stream": False,
             "max_tokens": 256,

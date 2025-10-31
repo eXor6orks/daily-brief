@@ -8,7 +8,7 @@ load_dotenv()
 
 ICLOUD_URL = os.getenv("ICLOUD_URL")
 ICLOUD_USERNAME = os.getenv("ICLOUD_USERNAME")
-ICLOUD_APP_PASSWORD = os.getenv("ICLOUD_PW")  # We'll use the base URL
+ICLOUD_APP_PASSWORD = os.getenv("ICLOUD_PW")
 
 class Event() :
     def __init__(self, uid, summary, start, end):
@@ -28,6 +28,14 @@ class Event() :
     def __str__(self):
         return f"Event(uid={self.uid}, summary={self.summary}, start={self.start}, end={self.end})\n"
 
+"""
+    Class to manage Icloud calendars.
+
+    You can take event from Icloud calendars but you can too
+    add and update events.
+
+    This code is inspired from : 
+"""
 class Calendars() :
 
     events = []
