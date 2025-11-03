@@ -57,5 +57,7 @@ For a personnal Chroma DB, add the IP and Port to .env.
 For have Weather on you'r location, you have two choise, once is to active IP adresse checker, and it's automatically get you'r position.
 Either, you can add manually you'r location, with two points : Latitude and Longitude.
 
-
 ### TODO
+
+[ ] Give possibility to change the location methods
+[ ] Add management informations about habits of users
