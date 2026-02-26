@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from Daily.Calendars import Calendars
 from Daily.Weather import Weather
-from Daily.CDB import DBCCollection
+# from Daily.CDB import DBCCollection
 from Daily.Ollama import Ollama
 
 import argparse
@@ -14,7 +14,7 @@ class DailyBrief :
     calendars : Calendars = None
     weather : Weather = None
     ollama : Ollama = None
-    chroma : DBCCollection = None
+    # chroma : DBCCollection = None
     response : str = None
 
     def __init__(self, opt):
@@ -24,7 +24,7 @@ class DailyBrief :
 
         self.calendars = Calendars()
         self.weather = Weather()
-        self.chroma = DBCCollection(self._COLLECTION_NAME)
+        # self.chroma = DBCCollection(self._COLLECTION_NAME)
         self.ollama = Ollama()
 
     def set_calendar_event(self) :
@@ -34,22 +34,22 @@ class DailyBrief :
     def set_weather_report(self) :
         self.weather.get_weather_report()
 
-    def set_Articles_Informations(self, question):
-        self.chroma.set_article_informations(question)
+    # def set_Articles_Informations(self, question):
+    #     self.chroma.set_article_informations(question)
 
     def get_information_JSON(self) : 
         return {
             'calendars' : self.calendars.Get_Events_JSON(),
             'weather' : self.weather.Get_Weather_JSON(),
-            'articles' : self.chroma.Get_Article_JSON()
+            # 'articles' : self.chroma.Get_Article_JSON()
         }
     
     def get_daily_brief_LLM(self) :
         self.set_calendar_event()
         self.set_weather_report()
 
-        if getattr(self._options, 'collection_activation', False):
-            self.set_Articles_Informations(self._options.question)
+        # if getattr(self._options, 'collection_activation', False):
+        #     self.set_Articles_Informations(self._options.question)
 
         self.ollama.query(self.get_information_JSON())
 

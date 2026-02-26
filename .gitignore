@@ -208,3 +208,8 @@ __marimo__/
 
 
 .cache.sqlite
+
+db-test-data/
+db-prod-data/
+
+.vscode/

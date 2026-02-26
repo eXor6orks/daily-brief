@@ -1,0 +1,55 @@
+services:
+  dailybrief-db-test:
+    image: mysql:latest
+    restart: no
+    container_name: dailybrief-mysql-test
+    environment:
+      MYSQL_DATABASE: 'dailybrief-db-test'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ROOT_PASSWORD: 'password'
+    ports:
+      - '3309:3306'
+    expose:
+      - '3306'
+    volumes:
+      - ./db-test-data:/var/lib/mysql
+    networks:
+      shared-network:
+        ipv4_address: 172.25.0.15
+
+  dailybrief-db-prod:
+    image: mysql:latest
+    restart: no
+    container_name: dailybrief-mysql-production
+    environment:
+      MYSQL_DATABASE: 'dailybrief-db-prod'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ROOT_PASSWORD: 'password'
+    ports:
+      - '3310:3306'
+    expose:
+      - '3306'
+    volumes:
+      - ./db-prod-data:/var/lib/mysql
+    networks:
+      shared-network:
+        ipv4_address: 172.25.0.16
+
+  dailybrief-salva:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dailybrief-salva
+    restart: unless-stopped
+    depends_on:
+      - dailybrief-db-prod
+    networks:
+      shared-network:
+        ipv4_address: 172.25.0.17
+
+
+networks:
+  shared-network:
+    external: true

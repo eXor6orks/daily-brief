@@ -3,7 +3,7 @@ import json
 import datetime
 
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
-MODEL = "llama3.1:8b"
+MODEL = "llama3.1:latest"
 MODEL_RESUME = "gemma3:1b"
 
 def serialize_data(data):
